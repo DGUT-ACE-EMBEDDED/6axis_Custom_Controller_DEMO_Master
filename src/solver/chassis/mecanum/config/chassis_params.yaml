@@ -1,0 +1,5 @@
+/solver/mecanum_solver:
+  ros__parameters:
+   car_width: 10.0
+   car_length: 10.0
+   

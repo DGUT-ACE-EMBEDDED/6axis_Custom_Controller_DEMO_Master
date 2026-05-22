@@ -1,0 +1,2 @@
+uint16 feedback_ecd;
+float32 angle_single_round
