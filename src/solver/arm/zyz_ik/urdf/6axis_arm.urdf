@@ -1,0 +1,138 @@
+<?xml version = "1.0"?>
+
+<robot name = "6axis_arm">
+  <!-- DH params: deta_d=0, l2=0.380, l3=0.3783, deta_a=-0.055 -->
+
+  <link name = "base_link">
+    <visual>
+      <geometry>
+        <box size = "0.15 0.15 0.15"/>
+      </geometry>
+      <origin xyz = "0 0 0.075" rpy = "0 0 0"/>
+    </visual>
+  </link>
+
+  <!-- L1: theta=0, d=0, a=0, alpha=0 -->
+  <joint name = "joint_1" type = "revolute">
+    <parent link = "base_link"/>
+    <child link = "link_1"/>
+    <origin xyz = "0 0 0" rpy = "0 0 0"/>
+    <axis xyz = "0 0 1"/>
+    <limit lower = "-6.3705" upper = "6.3705" effort = "100" velocity = "1"/>
+  </joint>
+
+  <link name = "link_1">
+    <visual>
+      <geometry>
+        <cylinder radius = "0.06" length = "0.15"/>
+      </geometry>
+      <origin xyz = "0 0 0.075" rpy = "0 0 0"/>
+    </visual>
+  </link>
+
+  <!-- L2: theta=0, d=0, a=0, alpha=-pi/2 -->
+  <joint name = "joint_2" type = "revolute">
+    <parent link = "link_1"/>
+    <child link = "link_2"/>
+    <origin xyz = "0 0 0" rpy = "-1.5708 0 0"/>
+    <axis xyz = "0 0 1"/>
+    <limit lower = "-2.6180" upper = "-0.2618" effort = "100" velocity = "1"/>
+  </joint>
+
+  <link name = "link_2">
+    <visual>
+      <geometry>
+        <cylinder radius = "0.05" length = "0.30"/>
+      </geometry>
+      <origin xyz = "0.15 0 0" rpy = "0 1.5708 0"/>
+    </visual>
+  </link>
+
+  <!-- L3: theta=0, d=deta_d=0, a=l2=0.380, alpha=0 -->
+  <joint name = "joint_3" type = "revolute">
+    <parent link = "link_2"/>
+    <child link = "link_3"/>
+    <origin xyz = "0.380 0 0" rpy = "0 0 0"/>
+    <axis xyz = "0 0 1"/>
+    <limit lower = "-0.9599" upper = "1.3090" effort = "100" velocity = "1"/>
+  </joint>
+
+  <link name = "link_3">
+    <visual>
+      <geometry>
+        <cylinder radius = "0.04" length = "0.25"/>
+      </geometry>
+      <origin xyz = "0.125 0 0" rpy = "0 1.5708 0"/>
+    </visual>
+  </link>
+
+  <!-- L4: theta=0, d=l3=0.3783, a=deta_a=-0.055, alpha=-pi/2 -->
+  <joint name = "joint_4" type = "revolute">
+    <parent link = "link_3"/>
+    <child link = "link_4"/>
+    <origin xyz = " -0.055 0.3783 0  " rpy = "-1.5708 0 0"/>
+    <axis xyz = "0 0 1"/>
+    <limit lower = "-6.2832" upper = "6.2832" effort = "100" velocity = "1"/>
+  </joint>
+
+  <link name = "link_4">
+    <visual>
+      <geometry>
+        <cylinder radius = "0.035" length = "0.05"/>
+      </geometry>
+      <origin xyz = "0 0 0.025" rpy = "0 0 0"/>
+    </visual>
+  </link>
+
+  <!-- L5: theta=0, d=0, a=0, alpha=pi/2 -->
+  <joint name = "joint_5" type = "revolute">
+    <parent link = "link_4"/>
+    <child link = "link_5"/>
+    <origin xyz = "0 0 0" rpy = "1.5708 0 0"/>
+    <axis xyz = "0 0 1"/>
+    <limit lower = "-2.0944" upper = "2.0944" effort = "100" velocity = "1"/>
+  </joint>
+
+  <link name = "link_5">
+    <visual>
+      <geometry>
+        <cylinder radius = "0.03" length = "0.05"/>
+      </geometry>
+      <origin xyz = "0 0 0.025" rpy = "0 0 0"/>
+    </visual>
+  </link>
+
+  <!-- L6: theta=0, d=0, a=0, alpha=-pi/2 -->
+  <joint name = "joint_6" type = "revolute">
+    <parent link = "link_5"/>
+    <child link = "link_6"/>
+    <origin xyz = " 0 0 0" rpy = "-1.5708 0 0"/>
+    <axis xyz = "0 0 1"/>
+    <limit lower = "-1.7453" upper = "1.7453" effort = "100" velocity = "1"/>
+  </joint>
+
+  <link name = "link_6">
+    <visual>
+      <geometry>
+        <cylinder radius = "0.02" length = "0.03"/>
+      </geometry>
+      <origin xyz = "0 0 0.015" rpy = "0 0 0"/>
+    </visual>
+  </link>
+
+   <!-- tool frame -->
+  <joint name = "tool_joint" type = "fixed">
+    <parent link = "link_6"/>
+    <child link = "tool"/>
+    <origin xyz = "0 0 0.05" rpy = "3.1416 -1.5708 0"/>
+  </joint>
+
+  <link name = "tool"/>
+
+
+
+
+
+
+
+</robot>
