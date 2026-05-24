@@ -50,34 +50,37 @@ namespace solver
             {
                 target_pose_.updated = false;
 
-                double j[6] = {
+               
+                
+               
+
+                // RCLCPP_INFO(get_logger(), "target_pose1: x=%.5f y=%.5f z=%.5f", x_act, y_act, z_act);
+                // RCLCPP_INFO(get_logger(), "target_pose2: x=%.5f y=%.5f z=%.5f", target_pose_.x, target_pose_.y, target_pose_.z);
+               
+                // RCLCPP_INFO(get_logger(), "target_pose3: x=%.5f y=%.5f z=%.5f", target_pose_.x, target_pose_.y, target_pose_.z);
+
+               
+            }  double j[6] = {
                     current_joint_angles_.joint_1, current_joint_angles_.joint_2,
                     current_joint_angles_.joint_3, current_joint_angles_.joint_4,
                     current_joint_angles_.joint_5, current_joint_angles_.joint_6
                 };
-                double x_act, y_act, z_act;
-                computeFK(j, x_act, y_act, z_act);
-
-                RCLCPP_INFO(get_logger(), "target_pose1: x=%.5f y=%.5f z=%.5f", x_act, y_act, z_act);
-                RCLCPP_INFO(get_logger(), "target_pose2: x=%.5f y=%.5f z=%.5f", target_pose_.x, target_pose_.y, target_pose_.z);
-                target_pose_.x += x_act;
-                target_pose_.y += y_act;
-                target_pose_.z += z_act;
-                RCLCPP_INFO(get_logger(), "target_pose3: x=%.5f y=%.5f z=%.5f", target_pose_.x, target_pose_.y, target_pose_.z);
-
-                //computeIK();
-            }
-
+            double x_act, y_act, z_act;
+            computeFK(j, x_act, y_act, z_act);
+            target_pose_.x = x_act;
+            target_pose_.y = y_act;
+            target_pose_.z = z_act;
+            computeIK();
             auto msg = sensor_msgs::msg::JointState();
             msg.header.stamp = this->now();
             msg.name = {"joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"};
             msg.position = {current_joint_angles_.joint_1, current_joint_angles_.joint_2,
                             current_joint_angles_.joint_3, current_joint_angles_.joint_4,
                             current_joint_angles_.joint_5, current_joint_angles_.joint_6};
-            // RCLCPP_INFO(get_logger(), "current_joint_angles: j1=%.3f j2=%.3f j3=%.3f j4=%.3f j5=%.3f j6=%.3f",
-            //             current_joint_angles_.joint_1, current_joint_angles_.joint_2,
-            //             current_joint_angles_.joint_3, current_joint_angles_.joint_4,
-            //             current_joint_angles_.joint_5, current_joint_angles_.joint_6);
+            RCLCPP_INFO(get_logger(), "current_joint_angles: j1=%.3f j2=%.3f j3=%.3f j4=%.3f j5=%.3f j6=%.3f",
+                        current_joint_angles_.joint_1, current_joint_angles_.joint_2,
+                        current_joint_angles_.joint_3, current_joint_angles_.joint_4,
+                        current_joint_angles_.joint_5, current_joint_angles_.joint_6);
             joint_state_pub_->publish(msg);
         }
 
