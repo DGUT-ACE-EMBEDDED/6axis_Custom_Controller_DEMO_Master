@@ -58,11 +58,14 @@ namespace solver
                 double x_act, y_act, z_act;
                 computeFK(j, x_act, y_act, z_act);
 
+                RCLCPP_INFO(get_logger(), "target_pose1: x=%.5f y=%.5f z=%.5f", x_act, y_act, z_act);
+                RCLCPP_INFO(get_logger(), "target_pose2: x=%.5f y=%.5f z=%.5f", target_pose_.x, target_pose_.y, target_pose_.z);
                 target_pose_.x += x_act;
                 target_pose_.y += y_act;
                 target_pose_.z += z_act;
+                RCLCPP_INFO(get_logger(), "target_pose3: x=%.5f y=%.5f z=%.5f", target_pose_.x, target_pose_.y, target_pose_.z);
 
-                computeIK();
+                //computeIK();
             }
 
             auto msg = sensor_msgs::msg::JointState();
@@ -71,6 +74,10 @@ namespace solver
             msg.position = {current_joint_angles_.joint_1, current_joint_angles_.joint_2,
                             current_joint_angles_.joint_3, current_joint_angles_.joint_4,
                             current_joint_angles_.joint_5, current_joint_angles_.joint_6};
+            // RCLCPP_INFO(get_logger(), "current_joint_angles: j1=%.3f j2=%.3f j3=%.3f j4=%.3f j5=%.3f j6=%.3f",
+            //             current_joint_angles_.joint_1, current_joint_angles_.joint_2,
+            //             current_joint_angles_.joint_3, current_joint_angles_.joint_4,
+            //             current_joint_angles_.joint_5, current_joint_angles_.joint_6);
             joint_state_pub_->publish(msg);
         }
 
@@ -154,6 +161,10 @@ namespace solver
             double j4 = alpha;
             double j5 = -beta;
             double j6 = gamma;
+            // RCLCPP_INFO(get_logger(), "current_joint_angles: j1=%.3f j2=%.3f j3=%.3f j4=%.3f j5=%.3f j6=%.3f",
+            //              current_joint_angles_.joint_1, current_joint_angles_.joint_2,
+            //              current_joint_angles_.joint_3, current_joint_angles_.joint_4,
+            //             current_joint_angles_.joint_5, current_joint_angles_.joint_6);
 
             // ---- 10. clamp to joint limits ----
             current_joint_angles_.joint_1 = clamp(j1, joint_limits_.joint_1.lower, joint_limits_.joint_1.upper);
@@ -196,8 +207,10 @@ namespace solver
                                    Eigen::AngleAxisd(-j[4], Eigen::Vector3d::UnitY()) *
                                    Eigen::AngleAxisd(j[5], Eigen::Vector3d::UnitZ())).matrix();
 
-            // tool position = p40 + R40 * R46 * (0, 0, 0.05)
-            Eigen::Vector3d pt = p40 + R40 * R46 * Eigen::Vector3d(0, 0, 0.05);
+            // T60 = T40 * T_wrist (wrist joints co-located, so p60 = p40)
+            Eigen::Matrix3d R60 = R40 * R46;
+            // T_tool = T60 * T6t
+            Eigen::Vector3d pt = p40 + R60 * T6t_.block<3,1>(0,3);
             x = pt(0);
             y = pt(1);
             z = pt(2);
@@ -286,7 +299,8 @@ namespace solver
             T6t.block<3,3>(0,0) << 0, 1, 0,
                                     0, 0, -1,
                                    -1, 0, 0;
-            T6t.block<3,1>(0,3) = Eigen::Vector3d(0, 0, 0.05);
+            T6t.block<3,1>(0,3) = Eigen::Vector3d(0, 0, 0);
+            T6t_ = T6t;
             Tend26_inv_ = T6t.inverse();
         }
     }

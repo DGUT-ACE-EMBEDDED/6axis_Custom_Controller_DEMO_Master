@@ -2,9 +2,6 @@
 // Licensed under the Apache-2.0 License.
 #include "rm_serial_driver/rm_serial_driver.hpp"
 
-int i = 0;
-
-
 namespace rm_serial_driver
 {
     
@@ -19,6 +16,7 @@ namespace rm_serial_driver
         tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
         // Create Publisher
         latency_pub_ = this->create_publisher<std_msgs::msg::Float64>("/latency", 10);
+        target_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/target/pose", 10);
 
         // Detect parameter client
         detector_param_client_ = std::make_shared<rclcpp::AsyncParametersClient>(this, "detector_node");
@@ -75,28 +73,46 @@ namespace rm_serial_driver
         {
             try
             {
+                data.clear();
                 serial_driver_->port()->receive(header);
-                if (header[0] == 0xEE)
-                {
-                    data.resize(sizeof(ReceivePacket) - 1);
-                    serial_driver_->port()->receive(data);
-                    data.insert(data.begin(), header [0]);
-                    ReceivePacket packet = fromVector(data);
-                    if(packet.header == 0xEE && packet.checksum == 0xED)
-                    {
-                        i++;
-                        RCLCPP_INFO(get_logger(), "%d", i);
-                    }
-                    else
-                    {
-                        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 20, "Invalid packet received: header=%02X, checksum=%02X", packet.header, packet.checksum);
-                    }
-                  
-                }
-                else
+
+                if (header[0] != 0xEE)
                 {
                     RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 20, "Invalid header: %02X", header[0]);
+                    continue;
                 }
+
+                data.push_back(header[0]);
+                std::vector<uint8_t> body(sizeof(ReceivePacket) - 1);
+                serial_driver_->port()->receive(body);
+                data.insert(data.end(), body.begin(), body.end());
+
+                ReceivePacket packet = fromVector(data);
+
+                // XOR checksum verify over bytes 0..(size-2)
+               
+                if (packet.checksum != 0xED)
+                {
+                    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 20,
+                        "checksum mismatch: header=%02X", packet.header);
+                    continue;
+                }
+
+                auto msg = geometry_msgs::msg::PoseStamped();
+                msg.header.stamp = this->now();
+                msg.header.frame_id = "end_link";
+                msg.pose.position.x = packet.x;
+                msg.pose.position.y = packet.y;
+                msg.pose.position.z = packet.z;
+                msg.pose.orientation.x = packet.qx;
+                msg.pose.orientation.y = packet.qy;
+                msg.pose.orientation.z = packet.qz;
+                msg.pose.orientation.w = packet.qw;
+                target_pose_pub_->publish(msg);
+                // RCLCPP_INFO(get_logger(), "Received target: x=%.6f y=%.6f z=%.6f qx=%.6f qy=%.6f qz=%.6f qw=%.6f",
+                //             packet.x, packet.y, packet.z, packet.qx, packet.qy, packet.qz, packet.qw);
+
+               
             }
             catch (const std::exception &ex)
             {

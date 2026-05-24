@@ -4,6 +4,7 @@
 #ifndef RM_SERIAL_DRIVER__RM_SERIAL_DRIVER_HPP_
 #define RM_SERIAL_DRIVER__RM_SERIAL_DRIVER_HPP_
 
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <queue>
 #include <rclcpp/publisher.hpp>
@@ -84,6 +85,7 @@ namespace rm_serial_driver
 
         //rclcpp::Subscription<auto_aim_interfaces::msg::JointInfoSet>::SharedPtr target_sub_;
         // For debug usage
+        rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr target_pose_pub_;
         rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr latency_pub_;
         std::thread receive_thread_;
 
