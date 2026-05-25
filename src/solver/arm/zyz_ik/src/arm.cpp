@@ -178,6 +178,8 @@ namespace solver
             double j5 = -beta;
             double j6 = gamma;
 
+            RCLCPP_INFO_STREAM(this->get_logger(), "R64A:\n" << j4<<j5<<j6);
+
           
              
             // RCLCPP_INFO(get_logger(), "current_joint_angles: j1=%.3f j2=%.3f j3=%.3f j4=%.3f j5=%.3f j6=%.3f",
@@ -223,9 +225,7 @@ namespace solver
             Eigen::Matrix3d R40 = T40.block<3,3>(0,0);
             Eigen::Vector3d p40 = T40.block<3,1>(0,3);
            
-            
-
-
+        
             // wrist rotation = Rz(j4) * Ry(-j5) * Rz(j6)
             Eigen::Matrix3d R64 = (Eigen::AngleAxisd(j[3], Eigen::Vector3d::UnitZ()) *
                                    Eigen::AngleAxisd(-j[4], Eigen::Vector3d::UnitY()) *
