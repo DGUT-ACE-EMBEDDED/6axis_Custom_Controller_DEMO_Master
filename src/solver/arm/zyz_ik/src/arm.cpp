@@ -70,7 +70,7 @@ namespace solver
             target_pose_.y = 0.000f;
             target_pose_.z = 0.300f;
             target_pose_.roll = 0;
-            target_pose_.pitch = 0;
+            target_pose_.pitch = PI/3;
             target_pose_.yaw = 0;
             computeIK();
             // RCLCPP_INFO(get_logger(), "current_joint_angles: j1=%.3f j2=%.3f j3=%.3f j4=%.3f j5=%.3f j6=%.3f",
