@@ -28,10 +28,12 @@ struct ReceivePacket
 struct SendPacket
 {
   uint8_t header = 0xEE;
-  uint16_t wheel_lf_current;
-  uint16_t wheel_rf_current;
-  uint16_t wheel_lb_current;
-  uint16_t wheel_rb_current;
+  float joint1;
+  float joint2;
+  float joint3;
+  float joint4;
+  float joint5;
+  float joint6;
   uint8_t checksum = 0xED;
 } __attribute__((packed));
 

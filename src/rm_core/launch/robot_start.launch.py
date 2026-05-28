@@ -14,17 +14,27 @@ def generate_launch_description():
     with open(urdf_file, 'r') as f:
         robot_desc = f.read()
 
-    # serial driver config
-    serial_config = os.path.join(
-        get_package_share_directory('rm_serial_driver'), 'config', 'serial_driver.yaml')
+    # serial driver configs
+    rm_pkg = get_package_share_directory('rm_serial_driver')
+    config_a = os.path.join(rm_pkg, 'config', 'device_a_driver.yaml')
+    config_b = os.path.join(rm_pkg, 'config', 'device_b_driver.yaml')
 
-    # Serial driver node
-    rm_serial_driver_node = Node(
+    # Device A serial driver
+    device_a_driver_node = Node(
         package='rm_serial_driver',
-        executable='rm_serial_driver_node',
+        executable='device_a_driver_node',
         output='screen',
         emulate_tty=True,
-        parameters=[serial_config],
+        parameters=[config_a],
+    )
+
+    # Device B serial driver
+    device_b_driver_node = Node(
+        package='rm_serial_driver',
+        executable='device_b_driver_node',
+        output='screen',
+        emulate_tty=True,
+        parameters=[config_b],
     )
 
     # IK solver node
@@ -53,7 +63,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        rm_serial_driver_node,
+        device_a_driver_node,
         zyz_ik_solver_node,
         robot_state_publisher_node,
         rviz_node,

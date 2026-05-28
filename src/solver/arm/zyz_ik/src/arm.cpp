@@ -4,9 +4,16 @@
 
 namespace
 {
-    constexpr double PI = M_PI;
-    constexpr double EQS_VAL = 1e-6;
-    inline double clamp(double v, double lo, double hi) { return v < lo ? lo : (v > hi ? hi : v); }
+    inline double angleDiff(double from, double to)
+    {
+        double d = to - from;
+        while (d > M_PI)
+            d -= 2 * M_PI;
+        while (d < -M_PI)
+            d += 2 * M_PI;
+        return d;
+    }
+
 }
 
 namespace solver
@@ -36,49 +43,106 @@ namespace solver
                                  msg->pose.orientation.x,
                                  msg->pose.orientation.y,
                                  msg->pose.orientation.z);
-            Eigen::Vector3d rpy = q.toRotationMatrix().eulerAngles(2, 1, 0);
-            target_pose_.yaw = rpy(0);
-            target_pose_.pitch = rpy(1);
-            target_pose_.roll = rpy(2);
+            target_R = q.toRotationMatrix();
 
             target_pose_.updated = true;
         }
 
         void ZYZIK::update()
         {
+
+            // double elapsed = (this->now() - transition_start_time_).seconds();
+            // double s = (transition_duration_ > 0 && elapsed < transition_duration_) ? elapsed / transition_duration_ : 1.0;
+            // double f = (3.0 - 2.0 * s) * s * s;
+
+            double temp_joint_datla = 0.0;
+            double temp_length = 0.0;
+
+            // auto interp = [&](double from, double to)
+            // {
+            //     return from + angleDiff(from, to) * f;
+            // };
+            // current_joint_angles_.joint_1 = interp(start_joint_angles_.joint_1, target_joint_angles_.joint_1);
+            // current_joint_angles_.joint_2 = interp(start_joint_angles_.joint_2, target_joint_angles_.joint_2);
+            // current_joint_angles_.joint_3 = interp(start_joint_angles_.joint_3, target_joint_angles_.joint_3);
+            // current_joint_angles_.joint_4 = interp(start_joint_angles_.joint_4, target_joint_angles_.joint_4);
+            // current_joint_angles_.joint_5 = interp(start_joint_angles_.joint_5, target_joint_angles_.joint_5);
+            // current_joint_angles_.joint_6 = interp(start_joint_angles_.joint_6, target_joint_angles_.joint_6);
+
+           static int i = 0;
             if (target_pose_.updated)
             {
-                target_pose_.updated = false; 
+             
+                i++;
+                target_pose_.updated = false;
+                
+                
+                j2LimitCalculate();
 
                 double j[6] = {
-                current_joint_angles_.joint_1, current_joint_angles_.joint_2,
-                current_joint_angles_.joint_3, current_joint_angles_.joint_4,
-                current_joint_angles_.joint_5, current_joint_angles_.joint_6};
+                        target_joint_angles_.joint_1, target_joint_angles_.joint_2,
+                        target_joint_angles_.joint_3, target_joint_angles_.joint_4,
+                        target_joint_angles_.joint_5, target_joint_angles_.joint_6};
 
-                // RCLCPP_INFO(get_logger(), "target_pose1: x=%.5f y=%.5f z=%.5f", x_act, y_act, z_act);
-                // RCLCPP_INFO(get_logger(), "target_pose2: x=%.5f y=%.5f z=%.5f", target_pose_.x, target_pose_.y, target_pose_.z);
-
-                // RCLCPP_INFO(get_logger(), "target_pose3: x=%.5f y=%.5f z=%.5f", target_pose_.x, target_pose_.y, target_pose_.z);
+                  RCLCPP_INFO(get_logger(), "target_joint_angles1: j1=%.3f j2=%.3f j3=%.3f j4=%.3f j5=%.3f j6=%.3f",
+                        target_joint_angles_.joint_1, target_joint_angles_.joint_2,
+                        target_joint_angles_.joint_3, target_joint_angles_.joint_4,
+                        target_joint_angles_.joint_5, target_joint_angles_.joint_6);
+ 
                 double x_act, y_act, z_act;
                 computeFK(j, x_act, y_act, z_act);
 
+                temp_joint_datla = M_PI - 0.21310470167 - current_joint_angles_.joint_3;
+                max_angle = M_PI - 0.21310470167 - joint_limits_.joint_3.lower;
+                max_length = sqrtf(powf(dh_params_.l2, 2) + powf(dh_params_.l3, 2) - 2 * dh_params_.l2 * dh_params_.l3 * cosf(max_angle));
+                temp_length =  sqrtf(powf(dh_params_.l2, 2) + powf(dh_params_.l3, 2) - 2 * dh_params_.l2 * dh_params_.l3 * cosf(temp_joint_datla));
+
+
+              
+                    RCLCPP_INFO(get_logger(), "target_pose1: x=%.5f y=%.5f z=%.5f", target_pose_.x, target_pose_.y , target_pose_.z);
                 target_pose_.x += x_act;
                 target_pose_.y += y_act;
-                target_pose_.z += z_act; 
+                target_pose_.z += z_act;
+                RCLCPP_INFO(get_logger(), "act: x=%.5f y=%.5f z=%.5f", x_act,  y_act, z_act);
+                RCLCPP_INFO(get_logger(), "target_pose2: x=%.5f y=%.5f z=%.5f", target_pose_.x, target_pose_.y , target_pose_.z);
+               
+                //     target_pose_.x = x_act;
+                // target_pose_.y = y_act;
+                // target_pose_.z = z_act;
+
+                
+                
+              
+
                 computeIK();
+                start_joint_angles_ = current_joint_angles_;
+                transition_start_time_ = this->now();
+                
             }
 
-            // target_pose_.x = 0.200f;
-            // target_pose_.y = 0.000f;
-            // target_pose_.z = 0.300f;
-            // target_pose_.roll = 0;
-            // target_pose_.pitch = 0;
-            // target_pose_.yaw = PI/3;
-           
+        //     target_pose_.x = 0.012;
+        //     target_pose_.y = 0;
+        //     target_pose_.z = 0.074;
+        //     target_pose_.roll = 0.0f;
+        //     target_pose_.pitch = M_PI/4;
+        //     target_pose_.yaw = 0;
+        //     target_R = (Eigen::AngleAxisd(target_pose_.yaw, Eigen::Vector3d::UnitZ()) *
+        //                 Eigen::AngleAxisd(target_pose_.pitch, Eigen::Vector3d::UnitY()) *
+        //                 Eigen::AngleAxisd(target_pose_.roll, Eigen::Vector3d::UnitX())).matrix();
+        //     computeIK();
+        //     double j[6] = {
+        //    target_joint_angles_.joint_1, target_joint_angles_.joint_2,
+        //                 target_joint_angles_.joint_3, target_joint_angles_.joint_4,
+        //                 target_joint_angles_.joint_5, target_joint_angles_.joint_6};
 
-           
+        //      RCLCPP_INFO(get_logger(), "current_joint_angles: j1=%.3f j2=%.3f j3=%.3f j4=%.3f j5=%.3f j6=%.3f",
+        //                 current_joint_angles_.joint_1, current_joint_angles_.joint_2,
+        //     current_joint_angles_.joint_3, current_joint_angles_.joint_4,
+        //     current_joint_angles_.joint_5, current_joint_angles_.joint_6);
+
+        //         double x_act, y_act, z_act;
+        //     computeFK(j, x_act, y_act, z_act);
             
-            // RCLCPP_INFO(get_logger(), "target_pose1: x=%.5f y=%.5f z=%.5f", x_act, y_act, z_act)
             auto msg = sensor_msgs::msg::JointState();
             msg.header.stamp = this->now();
             msg.name = {"joint_1", "joint_2", "joint_3", "joint_4", "joint_5", "joint_6"};
@@ -92,42 +156,37 @@ namespace solver
         void ZYZIK::computeIK()
         {
             double x = target_pose_.x, y = target_pose_.y, z = target_pose_.z;
-            double r = target_pose_.roll, p = target_pose_.pitch, w = target_pose_.yaw;
+
             double l2 = dh_params_.l2;
 
             // ---- 1. RPY -> rotation matrix (Rz*yaw * Ry*pitch * Rx*roll) ----
-            Eigen::Matrix3d R = (Eigen::AngleAxisd(w, Eigen::Vector3d::UnitZ()) *
-                                 Eigen::AngleAxisd(p, Eigen::Vector3d::UnitY()) *
-                                 Eigen::AngleAxisd(r, Eigen::Vector3d::UnitX()))
-                                    .matrix();
+            // Eigen::Matrix3d R = (Eigen::AngleAxisd(w, Eigen::Vector3d::UnitZ()) *
+            //                      Eigen::AngleAxisd(p, Eigen::Vector3d::UnitY()) *
+            //                      Eigen::AngleAxisd(r, Eigen::Vector3d::UnitX()))
+            //                         .matrix();
 
-            // ---- 2. homogeneous transform Timu2base = [R | t] ----
             Eigen::Matrix4d Timu2base = Eigen::Matrix4d::Identity();
-            Timu2base.block<3, 3>(0, 0) = R;
+            Timu2base.block<3, 3>(0, 0) = target_R;
             Timu2base.block<3, 1>(0, 3) = Eigen::Vector3d(x, y, z);
 
             // RCLCPP_INFO_STREAM(this->get_logger(), "Timu2base:\n" << Timu2base);
 
-            // ---- 3. T60 = Timu2base * Tend26_inv ----
             Eigen::Matrix4d T60 = Timu2base * Tend26_inv_;
             // RCLCPP_INFO_STREAM(this->get_logger(), "T60:\n" << T60);
 
-            // ---- 4. solve j1 ----
             double j1 = atan2f(T60(1, 3), T60(0, 3));
+            j1 =0;
 
-            // ---- 5. solve j3 (geometric) ----
             double pho = hypotf(T60(0, 3), T60(1, 3));
             double c = hypotf(pho, T60(2, 3));
             double cj3 = (l2 * l2 + l4d4_across_ - c * c) / (2.0 * l2 * sqrtf(l4d4_across_));
-            double j3 = -acosf(clamp(cj3, -1.0, 1.0)) + angle_l4d4_;
+            double j3 = -acosf(std::clamp(cj3, -1.0, 1.0)) + angle_l4d4_;
 
-            // ---- 6. solve j2 (geometric) ----
             double cj2 = (c * c + l2 * l2 - l4d4_across_) / (2.0 * c * l2);
-            double j2_1 = acosf(clamp(cj2, -1.0, 1.0));
+            double j2_1 = acosf(std::clamp(cj2, -1.0, 1.0));
             double j2_2 = atan2f(T60(2, 3), pho);
             double j2 = -j2_2 - j2_1;
 
-            // ---- 7. compute T40 through DH chain ----
             Eigen::Matrix4d T10 = Eigen::Matrix4d::Identity();
             T10.block<3, 3>(0, 0) = Eigen::AngleAxisd(j1, Eigen::Vector3d::UnitZ()).matrix();
 
@@ -146,14 +205,16 @@ namespace solver
 
             Eigen::Matrix3d R40 = (T10 * T21 * T32 * T43).block<3, 3>(0, 0);
 
-            // ---- 8. R64 = R40^T * R60 (ZYZ decomposition) ----
             Eigen::Matrix3d R60 = T60.block<3, 3>(0, 0);
             Eigen::Matrix3d R64 = R40.transpose() * R60;
 
-            // RCLCPP_INFO_STREAM(this->get_logger(), "R64:\n"
-            //                                            << R64);
+           Eigen::Matrix3d REND =  R60 * T6t_.block<3, 3>(0, 0);
+           
+            
 
-            // ---- 9. solve j4, j5, j6 (ZYZ Euler angles from R64) ----
+            RCLCPP_INFO_STREAM(this->get_logger(), "REND:\n"
+                                                       << REND);
+
             double alpha, gamma;
             double beta = atan2f(hypotf(R64(2, 0), R64(2, 1)), R64(2, 2));
 
@@ -162,7 +223,7 @@ namespace solver
                 alpha = 0;
                 gamma = atan2f(-R64(0, 1), R64(0, 0));
             }
-            else if (fabs(beta - PI) < EQS_VAL)
+            else if (fabs(beta - M_PI) < EQS_VAL)
             {
                 alpha = 0;
                 gamma = atan2f(R64(0, 1), -R64(0, 0));
@@ -173,66 +234,42 @@ namespace solver
                 gamma = atan2f(R64(2, 1), -R64(2, 0));
             }
 
+        
+            // auto clampCost = [&](double a, double b, double g)
+            // {
+            //     double j4 = a, j5 = -b, j6 = g;
+            //     double c4 = std::clamp(j4, joint_limits_.joint_4.lower, joint_limits_.joint_4.upper);
+            //     double c5 = std::clamp(j5, joint_limits_.joint_5.lower, joint_limits_.joint_5.upper);
+            //     double c6 = std::clamp(j6, joint_limits_.joint_6.lower, joint_limits_.joint_6.upper);
+            //     return (j4 - c4) * (j4 - c4) + (j5 - c5) * (j5 - c5) + (j6 - c6) * (j6 - c6);
+            // };
+
+            // double cost1 = clampCost(alpha, beta, gamma);
+            // double alpha2 = std::atan2(std::sin(alpha + M_PI), std::cos(alpha + M_PI));
+            // double gamma2 = std::atan2(std::sin(gamma + M_PI), std::cos(gamma + M_PI));
+            // double cost2 = clampCost(alpha2, -beta, gamma2);
+
+            // if (cost2 < cost1)
+            // {
+            //     alpha = alpha2;
+            //     beta = -beta;
+            //     gamma = gamma2;
+            // }
+
             double j4 = alpha;
             double j5 = -beta;
             double j6 = gamma;
 
-            // ---- normalize wrist angles: Rz(α)Ry(β)Rz(γ) = Rz(α±π)Ry(-β)Rz(γ∓π) ----
-            if (fabs(j4) > M_PI_2)
-            {
-                j5 = -j5;
-                if (j4 > 0)
-                {
-                    j4 -= M_PI;
-                    j6 += M_PI;
-                }
-                else
-                {
-                    j4 += M_PI;
-                    j6 -= M_PI;
-                }
-            }
-            if (fabs(j6) > M_PI_2)
-            {
-                j5 = -j5;
-                if (j6 > 0)
-                {
-                    j6 -= M_PI;
-                    j4 += M_PI;
-                }
-                else
-                {
-                    j6 += M_PI;
-                    j4 -= M_PI;
-                }
-            }
-            j4 = atan2(sin(j4), cos(j4));
-            j6 = atan2(sin(j6), cos(j6));
-
-            // RCLCPP_INFO_STREAM(this->get_logger(), "wrist: j4=" << j4 << " j5=" << j5 << " j6=" << j6);
-
-            // Eigen::Matrix3d R64A = (Eigen::AngleAxisd(j4, Eigen::Vector3d::UnitZ()) *
-            //                         Eigen::AngleAxisd(-j5, Eigen::Vector3d::UnitY()) *
-            //                         Eigen::AngleAxisd(j6, Eigen::Vector3d::UnitZ()))
-            //                            .matrix();
-
-            // Eigen::Matrix3d Re0 = R40 * R64A * T6t_.block<3, 3>(0, 0);
-            // Eigen::Vector3d rpy = Re0.eulerAngles(2, 1, 0);
-            // RCLCPP_INFO_STREAM(this->get_logger(), "RPY:\n"
-            //                                            << rpy);
-
-            // RCLCPP_INFO(get_logger(), "current_joint_angles: j1=%.3f j2=%.3f j3=%.3f j4=%.3f j5=%.3f j6=%.3f",
-            //              current_joint_angles_.joint_1, current_joint_angles_.joint_2,
-            //              current_joint_angles_.joint_3, current_joint_angles_.joint_4,
-            //             current_joint_angles_.joint_5, current_joint_angles_.joint_6);
-
-            // ---- 10. clamp to joint limits ----
-            current_joint_angles_.joint_1 = clamp(j1, joint_limits_.joint_1.lower, joint_limits_.joint_1.upper);
-            current_joint_angles_.joint_2 = clamp(j2, joint_limits_.joint_2.lower, joint_limits_.joint_2.upper);
-            current_joint_angles_.joint_3 = clamp(j3, joint_limits_.joint_3.lower, joint_limits_.joint_3.upper);
-            current_joint_angles_.joint_4 = clamp(j4, joint_limits_.joint_4.lower, joint_limits_.joint_4.upper);
-            current_joint_angles_.joint_5 = clamp(j5, joint_limits_.joint_5.lower, joint_limits_.joint_5.upper);
-            current_joint_angles_.joint_6 = clamp(j6, joint_limits_.joint_6.lower, joint_limits_.joint_6.upper);
+            target_joint_angles_.joint_1 = std::clamp(j1, joint_limits_.joint_1.lower, joint_limits_.joint_1.upper);
+            target_joint_angles_.joint_2 = std::clamp(j2, joint_limits_.joint_2.lower, joint_limits_.joint_2.upper);
+            target_joint_angles_.joint_3 = std::clamp(j3, joint_limits_.joint_3.lower, joint_limits_.joint_3.upper);
+            target_joint_angles_.joint_4 = std::clamp(j4, joint_limits_.joint_4.lower, joint_limits_.joint_4.upper);
+            target_joint_angles_.joint_5 = std::clamp(j5, joint_limits_.joint_5.lower, joint_limits_.joint_5.upper);
+            target_joint_angles_.joint_6 = std::clamp(j6, joint_limits_.joint_6.lower, joint_limits_.joint_6.upper);
+            RCLCPP_INFO(get_logger(), "target_joint_angles2: j1=%.3f j2=%.3f j3=%.3f j4=%.3f j5=%.3f j6=%.3f",
+                        target_joint_angles_.joint_1, target_joint_angles_.joint_2,
+                        target_joint_angles_.joint_3, target_joint_angles_.joint_4,
+                        target_joint_angles_.joint_5, target_joint_angles_.joint_6);
         }
 
         void ZYZIK::computeFK(const double j[6], double &x, double &y, double &z)
@@ -269,7 +306,6 @@ namespace solver
                                    Eigen::AngleAxisd(-j[4], Eigen::Vector3d::UnitY()) *
                                    Eigen::AngleAxisd(j[5], Eigen::Vector3d::UnitZ()))
                                       .matrix();
-            
 
             // T60 = T40 * T_wrist (wrist joints co-located, so p60 = p40)
             Eigen::Matrix3d R60 = R40 * R64;
@@ -279,13 +315,20 @@ namespace solver
             Eigen::Matrix3d Re0 = R40 * R64 * T6t_.block<3, 3>(0, 0);
             Eigen::Vector3d rpy = Re0.eulerAngles(2, 1, 0);
 
-            RCLCPP_INFO_STREAM(this->get_logger(), "Re0:\n" << Re0);
-            RCLCPP_INFO_STREAM(this->get_logger(), "RPY:\n" << rpy);
+            RCLCPP_INFO_STREAM(this->get_logger(), "Re0:\n"
+                                                       << Re0);
+            RCLCPP_INFO_STREAM(this->get_logger(), "RPY:\n"
+                                                       << rpy);
             x = pt(0);
             y = pt(1);
             z = pt(2);
             RCLCPP_INFO_STREAM(this->get_logger(), "p:\n"
                                                        << pt);
+        }
+
+        void ZYZIK::j2LimitCalculate()
+        {
+            joint_limits_.joint_3.lower = 203.0f * M_PI / 180.0f + current_joint_angles_.joint_2 + 0.21310470167 - M_PI;
         }
 
         void ZYZIK::getParams()
@@ -304,15 +347,14 @@ namespace solver
                         dh_params_.l2, dh_params_.l3, dh_params_.deta_a, dh_params_.deta_d);
 
             double l2 = dh_params_.l2, l3 = dh_params_.l3, da = dh_params_.deta_a;
+            l4d4_across_ = da * da + l3 * l3;
             if (fabs(da) > 1e-6)
             {
                 angle_l4d4_ = atan2f(l3, -da);
-                l4d4_across_ = da * da + l3 * l3;
             }
             else
             {
-                angle_l4d4_ = 0;
-                l4d4_across_ = l3 * l3;
+                angle_l4d4_ = M_PI_2;
             }
 
             // load joint limits
@@ -343,22 +385,22 @@ namespace solver
                 std::string key = "initial_angles.joint_" + std::to_string(i);
                 this->declare_parameter(key, 0.0);
             }
-            current_joint_angles_.joint_1 = clamp(
+            current_joint_angles_.joint_1 = std::clamp(
                 this->get_parameter("initial_angles.joint_1").as_double(),
                 joint_limits_.joint_1.lower, joint_limits_.joint_1.upper);
-            current_joint_angles_.joint_2 = clamp(
+            current_joint_angles_.joint_2 = std::clamp(
                 this->get_parameter("initial_angles.joint_2").as_double(),
                 joint_limits_.joint_2.lower, joint_limits_.joint_2.upper);
-            current_joint_angles_.joint_3 = clamp(
+            current_joint_angles_.joint_3 = std::clamp(
                 this->get_parameter("initial_angles.joint_3").as_double(),
                 joint_limits_.joint_3.lower, joint_limits_.joint_3.upper);
-            current_joint_angles_.joint_4 = clamp(
+            current_joint_angles_.joint_4 = std::clamp(
                 this->get_parameter("initial_angles.joint_4").as_double(),
                 joint_limits_.joint_4.lower, joint_limits_.joint_4.upper);
-            current_joint_angles_.joint_5 = clamp(
+            current_joint_angles_.joint_5 = std::clamp(
                 this->get_parameter("initial_angles.joint_5").as_double(),
                 joint_limits_.joint_5.lower, joint_limits_.joint_5.upper);
-            current_joint_angles_.joint_6 = clamp(
+            current_joint_angles_.joint_6 = std::clamp(
                 this->get_parameter("initial_angles.joint_6").as_double(),
                 joint_limits_.joint_6.lower, joint_limits_.joint_6.upper);
             RCLCPP_INFO(this->get_logger(), "Initial angles: %.2f %.2f %.2f %.2f %.2f %.2f",
@@ -366,12 +408,30 @@ namespace solver
                         current_joint_angles_.joint_3, current_joint_angles_.joint_4,
                         current_joint_angles_.joint_5, current_joint_angles_.joint_6);
 
+            // initialize targets to current angles (no transition on startup)
+            target_joint_angles_ = current_joint_angles_;
+            start_joint_angles_ = current_joint_angles_;
+
+            this->declare_parameter("transition_duration", 0.08);
+            transition_duration_ = this->get_parameter("transition_duration").as_double();
+            RCLCPP_INFO(this->get_logger(), "Transition duration: %.3f s", transition_duration_);
+
+            this->declare_parameter("eqs_val", 1e-6);
+            EQS_VAL = get_parameter("eqs_val").as_double();
+
+            this->declare_parameter("dh_params.tool_link", 0.0f);
+            tool_link = get_parameter("dh_params.tool_link").as_double();
+
+            this->declare_parameter("joint3_run_time_zero", -0.6981317008f);
+            joint3_zero = get_parameter("joint3_run_time_zero").as_double();
+
             // pre-compute Tend26_inv (tool->joint6 inverse)
             Eigen::Matrix4d T6t = Eigen::Matrix4d::Identity();
             T6t.block<3, 3>(0, 0) << 0, 0, 1,
                 0, -1, 0,
                 1, 0, 0;
-            T6t.block<3, 1>(0, 3) = Eigen::Vector3d(0, 0, 0);
+            T6t.block<3, 1>(0, 3) = Eigen::Vector3d(0, 0, tool_link);
+            T6t_ = T6t;
 
             Tend26_inv_ = T6t.inverse();
         }

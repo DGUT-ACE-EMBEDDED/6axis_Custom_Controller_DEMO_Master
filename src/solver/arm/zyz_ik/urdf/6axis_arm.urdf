@@ -70,7 +70,7 @@
   <joint name = "joint_4" type = "revolute">
     <parent link = "link_3"/>
     <child link = "link_4"/>
-    <origin xyz = " -0.055 0.3783 0  " rpy = "-1.5708 0 0"/>
+    <origin xyz = " 0 0.0183 0  " rpy = "-1.5708 0 0"/>
     <axis xyz = "0 0 1"/>
     <limit lower = "-6.2832" upper = "6.2832" effort = "100" velocity = "1"/>
   </joint>
@@ -88,7 +88,7 @@
   <joint name = "joint_5" type = "revolute">
     <parent link = "link_4"/>
     <child link = "link_5"/>
-    <origin xyz = "0 0 0" rpy = "1.5708 0 0"/>
+    <origin xyz = "0 0 0.32" rpy = "1.5708 0 0"/>
     <axis xyz = "0 0 1"/>
     <limit lower = "-2.0944" upper = "2.0944" effort = "100" velocity = "1"/>
   </joint>
@@ -106,7 +106,7 @@
   <joint name = "joint_6" type = "revolute">
     <parent link = "link_5"/>
     <child link = "link_6"/>
-    <origin xyz = " 0 0 0" rpy = "-1.5708 0 0"/>
+    <origin xyz = " 0 0.05 0" rpy = "-1.5708 0 0"/>
     <axis xyz = "0 0 1"/>
     <limit lower = "-1.7453" upper = "1.7453" effort = "100" velocity = "1"/>
   </joint>

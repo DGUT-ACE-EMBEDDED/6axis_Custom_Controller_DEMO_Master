@@ -1,35 +1,38 @@
 /solver/zyz_ik_solver:
   ros__parameters:
     dh_params:
-      l2: 0.380
-      l3: 0.3783
-      deta_a: -0.055
+      l2: 0.350
+      l3: 0.328
+      deta_a: 0.0  #无偏置
       deta_d: 0.0
-
+      tool_link: 0.0
     joint_limits:
       joint_1:
-        lower: -6.3705
-        upper: 6.3705
+        lower: -3.14159265358979323846
+        upper: 3.14159265358979323846
       joint_2:
-        lower: -2.6180
-        upper: -0.2618
+        lower: -2.8972465583 
+        upper: -1.0646508437  
       joint_3:
-        lower: -0.9599
-        upper: 1.3090
+        lower: 0.60720004677
+        upper: 1.3576916251     #只是初始的角度 ，需要进一步处理
       joint_4:
-        lower: -6.2832
-        upper: 6.2832
+        lower: -3.14159265358979323846
+        upper: 3.14159265358979323846
       joint_5:
         lower: -2.0944
         upper: 2.0944
       joint_6:
         lower: -1.7453
         upper: 1.7453
-
+  
     initial_angles:
       joint_1: 0.0
-      joint_2: -2.5180
-      joint_3: 1.3090
+      joint_2: -2.8972465583
+      joint_3: 1.3576916251
       joint_4: 0.0
       joint_5: 0.0
       joint_6: 0.0
+
+    eqs_val : 0.01
+    joint3_run_time_zero: -0.75049157836  # 驱动电机极限角度

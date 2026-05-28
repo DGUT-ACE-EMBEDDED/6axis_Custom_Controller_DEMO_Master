@@ -6,16 +6,25 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    config = os.path.join(
-        get_package_share_directory('rm_serial_driver'), 'config', 'serial_driver.yaml')
+    pkg = get_package_share_directory('rm_serial_driver')
 
-    rm_serial_driver_node = Node(
+    config_a = os.path.join(pkg, 'config', 'device_a_driver.yaml')
+    config_b = os.path.join(pkg, 'config', 'device_b_driver.yaml')
+
+    device_a = Node(
         package='rm_serial_driver',
-        executable='rm_serial_driver_node',
-        namespace='',
+        executable='device_a_driver_node',
         output='screen',
         emulate_tty=True,
-        parameters=[config],
+        parameters=[config_a],
     )
 
-    return LaunchDescription([rm_serial_driver_node])
+    device_b = Node(
+        package='rm_serial_driver',
+        executable='device_b_driver_node',
+        output='screen',
+        emulate_tty=True,
+        parameters=[config_b],
+    )
+
+    return LaunchDescription([device_a, device_b])
