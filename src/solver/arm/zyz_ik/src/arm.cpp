@@ -51,31 +51,33 @@ namespace solver
         void ZYZIK::update()
         {
 
-            // double elapsed = (this->now() - transition_start_time_).seconds();
-            // double s = (transition_duration_ > 0 && elapsed < transition_duration_) ? elapsed / transition_duration_ : 1.0;
-            // double f = (3.0 - 2.0 * s) * s * s;
+            double elapsed = (this->now() - transition_start_time_).seconds();
+            double s = (transition_duration_ > 0 && elapsed < transition_duration_) ? elapsed / transition_duration_ : 1.0;
+            double f = (3.0 - 2.0 * s) * s * s;
 
             double temp_joint_datla = 0.0;
             double temp_length = 0.0;
 
-            // auto interp = [&](double from, double to)
-            // {
-            //     return from + angleDiff(from, to) * f;
-            // };
-            // current_joint_angles_.joint_1 = interp(start_joint_angles_.joint_1, target_joint_angles_.joint_1);
-            // current_joint_angles_.joint_2 = interp(start_joint_angles_.joint_2, target_joint_angles_.joint_2);
-            // current_joint_angles_.joint_3 = interp(start_joint_angles_.joint_3, target_joint_angles_.joint_3);
-            // current_joint_angles_.joint_4 = interp(start_joint_angles_.joint_4, target_joint_angles_.joint_4);
-            // current_joint_angles_.joint_5 = interp(start_joint_angles_.joint_5, target_joint_angles_.joint_5);
-            // current_joint_angles_.joint_6 = interp(start_joint_angles_.joint_6, target_joint_angles_.joint_6);
+            auto interp = [&](double from, double to)
+            {
+                return from + angleDiff(from, to) * f;
+            };
+            current_joint_angles_.joint_1 = interp(start_joint_angles_.joint_1, target_joint_angles_.joint_1);
+            current_joint_angles_.joint_2 = interp(start_joint_angles_.joint_2, target_joint_angles_.joint_2);
+            current_joint_angles_.joint_3 = interp(start_joint_angles_.joint_3, target_joint_angles_.joint_3);
+            current_joint_angles_.joint_4 = interp(start_joint_angles_.joint_4, target_joint_angles_.joint_4);
+            current_joint_angles_.joint_5 = interp(start_joint_angles_.joint_5, target_joint_angles_.joint_5);
+            current_joint_angles_.joint_6 = interp(start_joint_angles_.joint_6, target_joint_angles_.joint_6);
 
-           static int i = 0;
+           
+            
+           
             if (target_pose_.updated)
             {
              
-                i++;
+              
                 target_pose_.updated = false;
-                
+             
                 
                 j2LimitCalculate();
 
@@ -92,17 +94,28 @@ namespace solver
                 double x_act, y_act, z_act;
                 computeFK(j, x_act, y_act, z_act);
 
-                temp_joint_datla = M_PI - 0.21310470167 - current_joint_angles_.joint_3;
-                max_angle = M_PI - 0.21310470167 - joint_limits_.joint_3.lower;
+                temp_joint_datla = M_PI/2 - 0.21310470167 - current_joint_angles_.joint_3;
+                max_angle = M_PI/2 - 0.21310470167 - joint_limits_.joint_3.lower;
                 max_length = sqrtf(powf(dh_params_.l2, 2) + powf(dh_params_.l3, 2) - 2 * dh_params_.l2 * dh_params_.l3 * cosf(max_angle));
                 temp_length =  sqrtf(powf(dh_params_.l2, 2) + powf(dh_params_.l3, 2) - 2 * dh_params_.l2 * dh_params_.l3 * cosf(temp_joint_datla));
-
+                RCLCPP_INFO(get_logger(), "length: max_length=%.5f temp_length=%.5f joint_limits_.joint_3.lower =  %.5f ",  max_length,temp_length,joint_limits_.joint_3.lower);
 
               
-                    RCLCPP_INFO(get_logger(), "target_pose1: x=%.5f y=%.5f z=%.5f", target_pose_.x, target_pose_.y , target_pose_.z);
-                target_pose_.x += x_act;
-                target_pose_.y += y_act;
-                target_pose_.z += z_act;
+                RCLCPP_INFO(get_logger(), "target_pose1: x=%.5f y=%.5f z=%.5f", target_pose_.x, target_pose_.y , target_pose_.z);
+                if(max_length > temp_length)
+                {
+                    target_pose_.x += x_act;
+                    target_pose_.y += y_act;
+                    target_pose_.z += z_act;
+                }
+                else
+                {
+                     target_pose_.x = x_act;
+                    target_pose_.y = y_act;
+                    target_pose_.z = z_act;
+
+                }
+               
                 RCLCPP_INFO(get_logger(), "act: x=%.5f y=%.5f z=%.5f", x_act,  y_act, z_act);
                 RCLCPP_INFO(get_logger(), "target_pose2: x=%.5f y=%.5f z=%.5f", target_pose_.x, target_pose_.y , target_pose_.z);
                
@@ -110,13 +123,10 @@ namespace solver
                 // target_pose_.y = y_act;
                 // target_pose_.z = z_act;
 
-                
-                
-              
-
                 computeIK();
                 start_joint_angles_ = current_joint_angles_;
                 transition_start_time_ = this->now();
+            
                 
             }
 
@@ -173,9 +183,12 @@ namespace solver
 
             Eigen::Matrix4d T60 = Timu2base * Tend26_inv_;
             // RCLCPP_INFO_STREAM(this->get_logger(), "T60:\n" << T60);
-
-            double j1 = atan2f(T60(1, 3), T60(0, 3));
-            j1 =0;
+            double j1 = 0;
+            if(T60(0, 3) < 0)
+            j1 = atan2f(-T60(1, 3), -T60(0, 3));
+            else 
+            j1 = atan2f(T60(1, 3), T60(0, 3));
+            
 
             double pho = hypotf(T60(0, 3), T60(1, 3));
             double c = hypotf(pho, T60(2, 3));
@@ -185,7 +198,16 @@ namespace solver
             double cj2 = (c * c + l2 * l2 - l4d4_across_) / (2.0 * c * l2);
             double j2_1 = acosf(std::clamp(cj2, -1.0, 1.0));
             double j2_2 = atan2f(T60(2, 3), pho);
-            double j2 = -j2_2 - j2_1;
+            double j2 = 0;
+            if (T60(0, 3) < 0) {
+                // 腕部在基座 X 负半轴：angle(Rx(pi/2)*p40) = -pi + j2_2
+                j2 = -M_PI + j2_2 - j2_1;
+            } else {
+                // 腕部在基座 X 正半轴：angle(Rx(pi/2)*p40) = -j2_2
+                j2 = -j2_2 - j2_1;
+            }
+            
+        
 
             Eigen::Matrix4d T10 = Eigen::Matrix4d::Identity();
             T10.block<3, 3>(0, 0) = Eigen::AngleAxisd(j1, Eigen::Vector3d::UnitZ()).matrix();
@@ -215,46 +237,69 @@ namespace solver
             RCLCPP_INFO_STREAM(this->get_logger(), "REND:\n"
                                                        << REND);
 
-            double alpha, gamma;
-            double beta = atan2f(hypotf(R64(2, 0), R64(2, 1)), R64(2, 2));
+            // ZYZ decomposition of R64: R64 = Rz(j4) * Ry(-j5) * Rz(j6)
+            //                      = Rz(alpha) * Ry(beta) * Rz(gamma)
+            // where alpha=j4, beta=-j5, gamma=j6.
+            //
+            // In ZYZ: R(0,2)=cos(α)sin(β), R(1,2)=sin(α)sin(β)
+            //         R(2,0)=-sin(β)cos(γ), R(2,1)=sin(β)sin(γ)
+            //         R(2,2)=cos(β)
+            //
+            // The sign of sin(β) is ambiguous from the matrix alone — there are
+            // two valid solutions:
+            //   Sol A (sin>0): β∈[0,π], α=α_raw,           γ=γ_raw
+            //   Sol B (sin<0): β∈[-π,0], α=α_raw-π (wrap), γ=γ_raw-π (wrap)
+            //
+            // We pick the solution where j4(=α) and j6(=γ) are closer to 0,
+            // avoiding unnecessary ±π rotations:
+            //   - tool down: j4=0, β=pi/2,  j5=-pi/2, j6=0  (Sol A)
+            //   - tool up:   j4=0, β=-pi/2, j5=pi/2,  j6=0  (Sol B)
 
-            if (fabs(beta) < EQS_VAL)
+            double cos_beta = R64(2, 2);
+            double sin_beta_mag = hypotf(R64(2, 0), R64(2, 1));
+
+            double alpha, gamma, beta;
+
+            if (sin_beta_mag < EQS_VAL)
             {
+                // Singularity: sin(β) ≈ 0 → β ≈ 0 or ±π
+                // α and γ are coupled; set α = 0
                 alpha = 0;
                 gamma = atan2f(-R64(0, 1), R64(0, 0));
-            }
-            else if (fabs(beta - M_PI) < EQS_VAL)
-            {
-                alpha = 0;
-                gamma = atan2f(R64(0, 1), -R64(0, 0));
+                beta = (cos_beta > 0) ? 0.0 : M_PI;
             }
             else
             {
-                alpha = atan2f(R64(1, 2), R64(0, 2));
-                gamma = atan2f(R64(2, 1), -R64(2, 0));
+                // Raw extraction (valid when sin(β) > 0)
+                double alpha_raw = atan2f(R64(1, 2), R64(0, 2));
+                double gamma_raw = atan2f(R64(2, 1), -R64(2, 0));
+
+                // Solution A: sin(β) > 0, β ∈ [0, π]
+                double alpha_a = alpha_raw;
+                double beta_a  = atan2f(sin_beta_mag, cos_beta);
+                double gamma_a = gamma_raw;
+
+                // Solution B: sin(β) < 0, β ∈ [-π, 0]
+                // When sin(β)<0: alpha_raw = α+π, so α = alpha_raw - π (wrapped)
+                auto wrap = [](double a) { return atan2f(sin(a), cos(a)); };
+                double alpha_b = wrap(alpha_raw - M_PI);
+                double beta_b  = atan2f(-sin_beta_mag, cos_beta);
+                double gamma_b = wrap(gamma_raw - M_PI);
+
+                // Choose the solution with j4, j6 closer to 0
+                if (fabs(alpha_b) + fabs(gamma_b) < fabs(alpha_a) + fabs(gamma_a))
+                {
+                    alpha = alpha_b;
+                    beta  = beta_b;
+                    gamma = gamma_b;
+                }
+                else
+                {
+                    alpha = alpha_a;
+                    beta  = beta_a;
+                    gamma = gamma_a;
+                }
             }
-
-        
-            // auto clampCost = [&](double a, double b, double g)
-            // {
-            //     double j4 = a, j5 = -b, j6 = g;
-            //     double c4 = std::clamp(j4, joint_limits_.joint_4.lower, joint_limits_.joint_4.upper);
-            //     double c5 = std::clamp(j5, joint_limits_.joint_5.lower, joint_limits_.joint_5.upper);
-            //     double c6 = std::clamp(j6, joint_limits_.joint_6.lower, joint_limits_.joint_6.upper);
-            //     return (j4 - c4) * (j4 - c4) + (j5 - c5) * (j5 - c5) + (j6 - c6) * (j6 - c6);
-            // };
-
-            // double cost1 = clampCost(alpha, beta, gamma);
-            // double alpha2 = std::atan2(std::sin(alpha + M_PI), std::cos(alpha + M_PI));
-            // double gamma2 = std::atan2(std::sin(gamma + M_PI), std::cos(gamma + M_PI));
-            // double cost2 = clampCost(alpha2, -beta, gamma2);
-
-            // if (cost2 < cost1)
-            // {
-            //     alpha = alpha2;
-            //     beta = -beta;
-            //     gamma = gamma2;
-            // }
 
             double j4 = alpha;
             double j5 = -beta;
