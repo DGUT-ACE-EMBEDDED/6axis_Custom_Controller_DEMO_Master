@@ -3,7 +3,15 @@
         {
             "name": "Linux",
             "compileCommands": [
-                "${workspaceFolder}/build/compile_commands.json"
+                "${workspaceFolder}/build/compile_commands.json",
+                "${workspaceFolder}/build/steer/compile_commands.json",
+                "${workspaceFolder}/build/omni/compile_commands.json",
+                "${workspaceFolder}/build/rm_interfaces/compile_commands.json",
+                "${workspaceFolder}/build/rm_core/compile_commands.json",
+                "${workspaceFolder}/build/rm_serial_driver/compile_commands.json",
+                "${workspaceFolder}/build/zyz_ik/compile_commands.json",
+                "${workspaceFolder}/build/mecanum/compile_commands.json",
+                "${workspaceFolder}/build/algorithm_lib/compile_commands.json"
             ],
             "includePath": [
                 "${workspaceFolder}/**"

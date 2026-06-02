@@ -57,6 +57,7 @@ namespace solver
             float joint3_zero;
             double max_length;
             double max_angle;
+            float last_j4_angle = 0;
             
         };
     }

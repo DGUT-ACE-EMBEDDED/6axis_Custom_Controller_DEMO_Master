@@ -34,5 +34,5 @@
       joint_5: 0.0
       joint_6: 0.0
 
-    eqs_val : 0.01
+    eqs_val : 0.0001
     joint3_run_time_zero: -0.75049157836  # 驱动电机极限角度
