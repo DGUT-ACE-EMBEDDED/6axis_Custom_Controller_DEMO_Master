@@ -314,10 +314,12 @@ namespace solver
             //         gamma = gamma_a;
             //     }
             //
-
+            Eigen::Vector3d temp_pos = R64  * Eigen::Vector3d(0, 0,1);
             
-            bool tool_up = REND(0, 2) > 0;
+            bool tool_up = temp_pos(0) <= 0;
 
+            RCLCPP_INFO_STREAM(this->get_logger(), "temp_pos:\n"
+                                                       << temp_pos);
             double sin_beta_mag = hypotf(R64(2, 0), R64(2, 1));
             double cos_beta = R64(2, 2);
             double sin_beta = tool_up ? -sin_beta_mag : sin_beta_mag;
@@ -325,21 +327,24 @@ namespace solver
             double alpha, gamma, beta;
             beta = atan2f(sin_beta, cos_beta);
 
+
+
+            //有问题，当位置跳跃较大时，j4会有较大变化，导致解算不稳定，甚至出现j4跳到±π的情况，冗余解
             if (fabs(beta) < EQS_VAL)
             {
-                // β ≈ 0：奇异，j4 和 j6 耦合，固定 j4=0
-                alpha = 0;
-                gamma = atan2f(-R64(0, 1), R64(0, 0));
+               
+                  // alpha = 0;
+                 //gamma = atan2f(-R64(0, 1), R64(0, 0));
             }
             else if (fabs(fabs(beta) - M_PI) < EQS_VAL)
             {
-                // β ≈ ±π：奇异，j4 和 j6 耦合，固定 j4=0
-                alpha = 0;
-                gamma = atan2f(R64(0, 1), -R64(0, 0));
+                
+               // alpha = 0;
+                //gamma = atan2f(R64(0, 1), -R64(0, 0));
             }
             else
             {
-                // 正常情况，根据 sin_beta 符号确定 α, γ
+               
                 if (!tool_up)
                 {
                     alpha = atan2f(R64(1, 2), R64(0, 2));
@@ -538,7 +543,9 @@ namespace solver
             T6t.block<3, 3>(0, 0) << 0, 0, 1,
                 0, -1, 0,
                 1, 0, 0;
-            T6t.block<3, 1>(0, 3) = Eigen::Vector3d(0, 0, tool_link);
+
+                //这里要加上
+            T6t.block<3, 1>(0, 3) = Eigen::Vector3d(0, 0, 0);
             T6t_ = T6t;
 
             Tend26_inv_ = T6t.inverse();

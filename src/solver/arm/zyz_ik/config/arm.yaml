@@ -5,7 +5,7 @@
       l3: 0.328
       deta_a: 0.0  #无偏置
       deta_d: 0.0
-      tool_link: 0.0
+      tool_link: 0.088
     joint_limits:
       joint_1:
         lower: -3.14159265358979323846
