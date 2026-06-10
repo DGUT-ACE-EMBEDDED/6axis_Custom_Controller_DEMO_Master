@@ -48,6 +48,11 @@ namespace solver
                 bool updated = false;
             } target_pose_;
 
+            struct
+            {
+                double alpha = 0 , beta = 0, gama = 0 ;
+            } last_joint_angles_;
+
             double l4d4_across_, angle_l4d4_;
             Eigen::Matrix4d T6t_;
             Eigen::Matrix4d Tend26_inv_;
